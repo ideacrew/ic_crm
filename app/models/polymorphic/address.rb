@@ -26,7 +26,7 @@
 #
 
 class Address < ActiveRecord::Base
-  belongs_to :addressable, polymorphic: true
+  belongs_to :addressable, polymorphic: true, optional: true
 
   has_paper_trail class_name: 'Version', meta: { related: :addressable }
 
