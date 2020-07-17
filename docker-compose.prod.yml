@@ -1,0 +1,77 @@
+version: '3.4'
+services:
+  web:
+    build:
+      context: .
+      target: web
+      dockerfile: Dockerfile.prod
+    image: ideacrew/crm_web:${IMAGE_TAG:-rc-0.1.0}
+    depends_on:
+      - app
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - 443:443
+    tmpfs:
+      - /tmp
+    secrets:
+      - ssl_cert
+      - ssl_key
+    command: sh -c 'cat /run/secrets/ssl_cert > /etc/ssl/ssl_cert.pem &&
+                    cat /run/secrets/ssl_key > /etc/ssl/ssl_key.pem &&
+                    nginx -g "daemon off;"'
+  app:
+    build:
+      context: .
+      target: app
+      dockerfile: Dockerfile.prod
+      args:
+        - DB_DATABASE=${DB_DATABASE}
+        - DB_USERNAME=${DB_USERNAME}
+        - DB_PASSWORD=${DB_PASSWORD}
+        - DB_HOST=${DB_HOST}
+    image: ideacrew/crm_app:${IMAGE_TAG:-rc-0.1.0}
+    depends_on:
+      - db
+    ports:
+      - "${RAILS_PORT:-3000}"
+    environment:
+      - RAILS_ENV=production
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=5432
+      - ACTION_MAILER_HOST=${ACTION_MAILER_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_ROOT_NAMESPACE=${AWS_S3_ROOT_NAMESPACE}
+      - AWS_BUCKET_ROOT_NAMESPACE=${AWS_BUCKET_ROOT_NAMESPACE}
+      - AWS_CONNECT_INSTANCE_ID=${AWS_CONNECT_INSTANCE_ID}
+    command: bash -c "rm -f tmp/pids/server.pid && 
+                      mkdir -p tmp/pids && 
+                      sleep 300 &&
+                      bundle exec puma -C config/puma.rb"
+  db:
+    image: postgres:12.3
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${DB_ROOT_PASSWORD} 
+
+volumes:
+  pgdata: 
+
+secrets:
+  ssl_cert: 
+    file: ../crm_certs/fullchain.pem
+  ssl_key: 
+    file: ../crm_certs/privkey.pem

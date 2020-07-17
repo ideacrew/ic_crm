@@ -4,11 +4,11 @@
 # docker-compose up
 # docker-compose exec web bundle exec rake db:create db:schema:load ffcrm:demo:load
 
-FROM ruby:2.4
+FROM ruby:2.6.5
 
-LABEL author="Steve Kenworthy"
+LABEL author="IdeaCrew"
 
-ENV HOME /home/app
+ENV HOME /crm
 
 RUN mkdir -p $HOME
 
@@ -19,10 +19,10 @@ RUN apt-get update && \
 	apt-get install -y imagemagick tzdata && \
 	apt-get autoremove -y && \
 	cp config/database.postgres.docker.yml config/database.yml && \
-	bundle install --deployment && \
-	bundle exec rails assets:precompile
+        gem install bundler:2.1.4 && \
+	bundle install 
 
-CMD ["bundle","exec","rails","s"]
+CMD ["bundle","exec","rails","s", "-b", "0.0.0.0"]
 
 EXPOSE 3000
 
